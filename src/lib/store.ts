@@ -10,6 +10,8 @@ interface User {
   role: string;
   gestationalAge: number | null;
   avatar: string | null;
+  phone: string | null;
+  age: number | null;
 }
 
 interface AuthState {

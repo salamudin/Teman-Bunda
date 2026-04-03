@@ -7,6 +7,7 @@ import BottomBar from "@/components/BottomBar";
 import AuthGuard from "@/components/AuthGuard";
 import Avatar from "@/components/Avatar";
 import ToastContainer from "@/components/ToastContainer";
+import BottomSheet from "@/components/BottomSheet";
 
 const STATUS_LABELS: Record<string, string> = {
   PROGRAM_HAMIL: "🌱 Program Hamil",
@@ -142,35 +143,53 @@ export default function ProfilePage() {
           )}
 
           {/* Logout */}
-          {!showLogout ? (
-            <button
-              className="btn btn-full"
-              style={{ 
-                marginTop: 12,
-                borderRadius: "var(--radius-lg)",
-                padding: "16px",
-                background: "#FEE2E2", 
-                color: "#EF4444", 
-                border: "1px solid #FECACA",
-                fontWeight: 700
-              }}
-              onClick={() => setShowLogout(true)}
-              id="logout-btn"
-            >
-              <LogOut size={18} style={{ marginRight: 8 }} /> Keluar Akun
-            </button>
-          ) : (
-            <div className="card" style={{ textAlign: "center", border: "1px solid #FECACA", background: "#FEF2F2" }}>
-              <p style={{ fontWeight: 700, marginBottom: 16, color: "#991B1B" }}>Yakin ingin keluar?</p>
+          <button
+            className="btn btn-full"
+            style={{ 
+              marginTop: 12,
+              borderRadius: "var(--radius-lg)",
+              padding: "16px",
+              background: "#FEE2E2", 
+              color: "#EF4444", 
+              border: "1px solid #FECACA",
+              fontWeight: 700
+            }}
+            onClick={() => setShowLogout(true)}
+            id="logout-btn"
+          >
+            <LogOut size={18} style={{ marginRight: 8 }} /> Keluar Akun
+          </button>
+
+          <BottomSheet 
+            isOpen={showLogout} 
+            onClose={() => setShowLogout(false)}
+            title="Keluar dari TemanBunda?"
+          >
+            <div style={{ textAlign: "center", paddingBottom: 20 }}>
+              <div style={{ 
+                width: 64, height: 64, borderRadius: "50%", background: "#FEE2E2", 
+                display: "flex", alignItems: "center", justifyContent: "center", 
+                margin: "0 auto 16px" 
+              }}>
+                <LogOut size={32} color="#EF4444" />
+              </div>
+              <p style={{ color: "var(--text-secondary)", marginBottom: 24, fontSize: "0.95rem" }}>
+                Anda perlu login kembali untuk mengakses jadwal dan chat dengan bidan.
+              </p>
               <div style={{ display: "flex", gap: 12 }}>
-                <button className="btn" style={{ flex: 1, background: "white", border: "1px solid var(--border)", fontWeight: 600 }} onClick={() => setShowLogout(false)}>Batal</button>
+                <button 
+                  className="btn" 
+                  style={{ flex: 1, background: "var(--secondary-light)", color: "var(--text-primary)", fontWeight: 600 }} 
+                  onClick={() => setShowLogout(false)}
+                >
+                  Batal
+                </button>
                 <button
                   className="btn"
                   style={{ 
                     flex: 1, 
                     background: "#EF4444", 
                     color: "white", 
-                    border: "none",
                     fontWeight: 700,
                     boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)"
                   }}
@@ -181,7 +200,7 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
-          )}
+          </BottomSheet>
 
           <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 24 }}>
             TemanBunda v1.0 • © 2026 All rights reserved
