@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  password       String
+  phone          String?
+  age            Int?
+  status         String    @default("PROGRAM_HAMIL") // PROGRAM_HAMIL | HAMIL | MENYUSUI
+  gestationalAge Int? // usia kehamilan dalam minggu
+  dueDate        DateTime?
+  avatar         String?
+  role           String    @default("USER") // USER | ADMIN | BIDAN
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  bookings      Booking[]
+  notifications Notification[]
+}
+
+model Bidan {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password        String
+  phone           String?
+  avatar          String?
+  experience      String // e.g., "10 tahun"
+  bio             String?
+  specializations String // JSON array: ["Program Hamil","Kehamilan","Menyusui"]
+  rating          Float    @default(0)
+  totalReviews    Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  availabilities Availability[]
+  bookings       Booking[]
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  bidanId   String
+  date      DateTime
+  startTime String // "09:00"
+  endTime   String // "10:00"
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  bidan   Bidan    @relation(fields: [bidanId], references: [id])
+  booking Booking?
+}
+
+model Booking {
+  id             String   @id @default(cuid())
+  userId         String
+  bidanId        String
+  availabilityId String   @unique
+  notes          String?
+  status         String   @default("WAITING_PAYMENT") // WAITING_PAYMENT | PAID | CONFIRMED | COMPLETED | CANCELLED
+  amount         Int      @default(150000) // dalam rupiah
+  paymentProof   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id])
+  bidan         Bidan          @relation(fields: [bidanId], references: [id])
+  availability  Availability   @relation(fields: [availabilityId], references: [id])
+  messages      Message[]
+  notifications Notification[]
+}
+
+// Message: senderId + senderType to support both User and Bidan senders, no Prisma relation (avoids optional-optional constraint)
+model Message {
+  id         String   @id @default(cuid())
+  bookingId  String
+  senderId   String
+  senderType String // USER | BIDAN
+  senderName String // denormalized for display
+  content    String
+  createdAt  DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  bookingId String?
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+}
