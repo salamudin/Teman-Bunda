@@ -25,31 +25,23 @@ export default function SplashPage() {
 
   return (
     <div className="splash-screen">
-      {/* Ratio 35 of screen device for the content box */}
-      <div className="splash-logo" style={{ width: '35vw', height: '35vw' }}>
-        <img 
-          src="/favicon.ico" 
-          alt="TemanBunda Logo" 
-          style={{ width: '60%', height: '60%', objectFit: 'contain' }} 
-        />
-      </div>
-      <h1 className="splash-text">TemanBunda</h1>
+      <h1 className="splash-text" style={{ fontSize: "2.5rem", marginBottom: 8 }}>Teman Bunda</h1>
       <p style={{ 
         color: "#02394E", 
-        marginTop: 12, 
-        fontSize: "0.85rem", 
+        fontSize: "1rem", 
         fontWeight: 600, 
-        letterSpacing: "0.05em",
-        opacity: 0.8
+        letterSpacing: "0.1em",
+        opacity: 0.9,
+        textTransform: "uppercase"
       }}>
         Konsultasi Bidan Profesional
       </p>
 
       <div style={{ 
-        position: "absolute", bottom: 40, width: "100%", 
+        position: "absolute", bottom: 60, width: "100%", 
         display: "flex", justifyContent: "center" 
       }}>
-        <div className="loading-spinner" style={{ borderTopColor: "#02394E" }} />
+        <div className="loading-spinner" style={{ borderTopColor: "#02394E", width: 24, height: 24 }} />
       </div>
     </div>
   );
