@@ -25,23 +25,26 @@ export default function SplashPage() {
 
   return (
     <div className="splash-screen">
-      <h1 className="splash-text" style={{ fontSize: "2.5rem", marginBottom: 8 }}>Teman Bunda</h1>
-      <p style={{ 
-        color: "#02394E", 
-        fontSize: "1rem", 
-        fontWeight: 600, 
-        letterSpacing: "0.1em",
-        opacity: 0.9,
-        textTransform: "uppercase"
-      }}>
-        Konsultasi Bidan Profesional
-      </p>
+      <div style={{ width: "25%", textAlign: "center" }}>
+        <h1 className="splash-text" style={{ fontSize: "1.2rem", marginBottom: 4, whiteSpace: "nowrap" }}>Teman Bunda</h1>
+        <p style={{ 
+          color: "#02394E", 
+          fontSize: "0.5rem", 
+          fontWeight: 700, 
+          letterSpacing: "0.05em",
+          opacity: 0.9,
+          textTransform: "uppercase",
+          lineHeight: 1.2
+        }}>
+          Konsultasi Bidan Profesional
+        </p>
+      </div>
 
       <div style={{ 
         position: "absolute", bottom: 60, width: "100%", 
         display: "flex", justifyContent: "center" 
       }}>
-        <div className="loading-spinner" style={{ borderTopColor: "#02394E", width: 24, height: 24 }} />
+        <div className="loading-spinner" style={{ borderTopColor: "#02394E", width: 16, height: 16 }} />
       </div>
     </div>
   );
