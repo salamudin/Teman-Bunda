@@ -89,122 +89,133 @@ export default function EditProfilePage() {
       <div className="page-no-pad">
         <div className="nav-bar">
           <button onClick={() => router.back()} className="nav-icon-btn"><ChevronLeft size={20} /></button>
-          <span style={{ fontWeight: 700 }}>Edit Profil</span>
+          <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>Edit Profil</span>
           <div style={{ width: 40 }} />
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: "24px 20px 100px" }}>
-          {/* Avatar Section */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
-            <div style={{ position: "relative" }}>
-              <Avatar name={formData.name} src={avatar} size={100} />
-              <label 
-                htmlFor="avatar-upload" 
-                style={{
-                  position: "absolute", bottom: 0, right: 0,
-                  width: 32, height: 32, borderRadius: "50%",
-                  background: "var(--primary)", border: "3px solid white",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", boxShadow: "var(--shadow-sm)"
-                }}
-              >
-                <Camera size={16} color="white" />
-                <input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
-              </label>
-            </div>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 12 }}>Ketuk ikon kamera untuk ubah foto</p>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Name */}
-            <div className="input-group">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                <User size={14} /> Nama Lengkap
-              </label>
-              <input
-                type="text"
-                className="input-field"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Masukkan nama Anda"
-                required
-              />
+        <div style={{ padding: "24px 20px 100px" }}>
+          <form onSubmit={handleSubmit} className="card shadow-md" style={{ border: "none" }}>
+            {/* Avatar Section */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+              <div style={{ position: "relative" }}>
+                <div style={{ padding: 4, background: "white", borderRadius: "50%", boxShadow: "var(--shadow-sm)" }}>
+                  <Avatar name={formData.name} src={avatar} size={100} />
+                </div>
+                <label 
+                  htmlFor="avatar-upload" 
+                  style={{
+                    position: "absolute", bottom: 4, right: 4,
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "var(--primary)", border: "2px solid white",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", boxShadow: "var(--shadow-md)"
+                  }}
+                >
+                  <Camera size={16} color="white" />
+                  <input id="avatar-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+                </label>
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 12, fontWeight: 500 }}>
+                Ketuk ikon kamera untuk ubah foto
+              </p>
             </div>
 
-            {/* Phone */}
-            <div className="input-group">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                <Phone size={14} /> Nomor WhatsApp
-              </label>
-              <input
-                type="tel"
-                className="input-field"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Contoh: 08123456789"
-              />
-            </div>
-
-            {/* Age */}
-            <div className="input-group">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                <Calendar size={14} /> Usia (Tahun)
-              </label>
-              <input
-                type="number"
-                className="input-field"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                placeholder="Masukkan usia Anda"
-              />
-            </div>
-
-            {/* Status */}
-            <div className="input-group">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                <Baby size={14} /> Status Bunda
-              </label>
-              <select
-                className="input-field"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                style={{ appearance: "none", background: "var(--bg-elevated) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\") no-repeat right 12px center", backgroundSize: "16px" }}
-              >
-                <option value="PROGRAM_HAMIL">Program Hamil</option>
-                <option value="HAMIL">Sedang Hamil</option>
-                <option value="MENYUSUI">Menyusui</option>
-              </select>
-            </div>
-
-            {/* Gestational Age */}
-            {formData.status === "HAMIL" && (
-              <div className="input-group animate-fade-in">
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 600, marginBottom: 8, color: "var(--text-secondary)" }}>
-                  <Baby size={14} /> Usia Kehamilan (Minggu)
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {/* Name */}
+              <div className="form-group">
+                <label className="form-label">
+                  <User size={14} style={{ marginRight: 6, display: "inline" }} /> Nama Lengkap
                 </label>
                 <input
-                  type="number"
-                  className="input-field"
-                  value={formData.gestationalAge}
-                  onChange={(e) => setFormData({ ...formData, gestationalAge: e.target.value })}
-                  placeholder="Contoh: 24"
-                  min="1"
-                  max="42"
+                  type="text"
+                  className="form-input"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Masukkan nama lengkap Anda"
+                  required
                 />
               </div>
-            )}
-          </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-full shadow-primary"
-            disabled={loading}
-            style={{ marginTop: 40, height: 54, fontSize: "1rem" }}
-          >
-            <Save size={18} style={{ marginRight: 8 }} />
-            {loading ? "Menyimpan..." : "Simpan Perubahan"}
-          </button>
-        </form>
+              {/* Phone */}
+              <div className="form-group">
+                <label className="form-label">
+                  <Phone size={14} style={{ marginRight: 6, display: "inline" }} /> Nomor WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Contoh: 08123456789"
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12 }}>
+                {/* Age */}
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">
+                    <Calendar size={14} style={{ marginRight: 6, display: "inline" }} /> Usia
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    placeholder="Tahun"
+                  />
+                </div>
+
+                {/* Gestational Age */}
+                {formData.status === "HAMIL" && (
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">
+                      <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Minggu
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={formData.gestationalAge}
+                      onChange={(e) => setFormData({ ...formData, gestationalAge: e.target.value })}
+                      placeholder="Contoh: 24"
+                      min="1"
+                      max="42"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="form-group">
+                <label className="form-label">
+                  <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Status Bunda
+                </label>
+                <select
+                  className="form-input form-select"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="PROGRAM_HAMIL">Program Hamil</option>
+                  <option value="HAMIL">Sedang Hamil</option>
+                  <option value="MENYUSUI">Menyusui</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-full shadow-primary"
+              disabled={loading}
+              style={{ marginTop: 24, padding: "16px" }}
+            >
+              <Save size={18} />
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </form>
+
+          <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 32 }}>
+            Data Anda tersimpan aman dan terenkripsi.
+          </p>
+        </div>
       </div>
     </AuthGuard>
   );
