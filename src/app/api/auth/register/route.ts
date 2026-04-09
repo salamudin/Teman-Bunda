@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
         status: user.status,
         role: user.role,
         gestationalAge: user.gestationalAge,
+        hpht: null,
+        dueDate: null,
       },
+
     });
   } catch (error) {
     console.error(error);

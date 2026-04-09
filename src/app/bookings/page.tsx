@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, MessageCircle, ChevronRight, CreditCard } from "lucide-react";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useBookingStore } from "@/lib/store";
 import BottomBar from "@/components/BottomBar";
 import AuthGuard from "@/components/AuthGuard";
 import Avatar from "@/components/Avatar";
@@ -27,16 +27,27 @@ const STATUS_LABEL: Record<string, { label: string; class: string; emoji: string
 
 export default function BookingsPage() {
   const { token, user } = useAuthStore();
+  const { bookings, setBookings, lastFetched } = useBookingStore();
   const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "DONE">("ACTIVE");
+  
+  // Jika sudah ada data di global state, jangan tunjukkan loading
+  const [loading, setLoading] = useState(bookings.length === 0);
+  const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "WAITING_PAYMENT" | "DONE">("ALL");
 
   const fetchBookings = useCallback(async () => {
+    // Apabila data sudah diambil dalam waktu 2 menit terakhir, skip fetch ulang supaya "cukup sekali load"
+    if (lastFetched && Date.now() - lastFetched < 120000 && bookings.length > 0) {
+      setLoading(false);
+      return; 
+    }
+
+    if (!token) return;
+
     try {
       const res = await fetch("/api/bookings", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return;
       const data = await res.json();
       setBookings(data.bookings || []);
     } catch {
@@ -44,19 +55,32 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, lastFetched, bookings.length, setBookings]);
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useEffect(() => { 
+    if (bookings.length > 0 && loading) {
+      setLoading(false);
+    }
+    fetchBookings(); 
+  }, [fetchBookings, bookings.length, loading]);
 
   const filtered = bookings.filter((b) => {
-    if (filter === "ACTIVE") return ["WAITING_PAYMENT", "PAID", "CONFIRMED"].includes(b.status);
+    if (filter === "ACTIVE") return ["PAID", "CONFIRMED"].includes(b.status);
+    if (filter === "WAITING_PAYMENT") return b.status === "WAITING_PAYMENT";
     if (filter === "DONE") return ["COMPLETED", "CANCELLED"].includes(b.status);
-    return true;
+    return true; // ALL
   });
 
   function formatCurrency(n: number) {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
   }
+
+  const FILTER_TABS = [
+    { id: "ALL", label: "Semua" },
+    { id: "ACTIVE", label: "Aktif" },
+    { id: "WAITING_PAYMENT", label: "Menunggu Pembayaran" },
+    { id: "DONE", label: "Riwayat" },
+  ] as const;
 
   return (
     <AuthGuard>
@@ -68,22 +92,23 @@ export default function BookingsPage() {
         {/* Filter tabs */}
         <div style={{
           display: "flex", gap: 8, padding: "16px 20px 0",
-          overflowX: "auto", scrollbarWidth: "none"
+          overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch"
         }}>
-          {(["ACTIVE", "ALL", "DONE"] as const).map((f) => (
+          {FILTER_TABS.map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
               className="btn btn-sm"
-              id={`filter-${f.toLowerCase()}`}
+              id={`filter-${f.id.toLowerCase()}`}
               style={{
-                background: filter === f ? "var(--gradient-primary)" : "var(--bg-elevated)",
-                color: filter === f ? "white" : "var(--text-secondary)",
-                border: filter === f ? "none" : "1px solid var(--border)",
-                flexShrink: 0
+                background: filter === f.id ? "var(--gradient-primary)" : "var(--bg-elevated)",
+                color: filter === f.id ? "white" : "var(--text-secondary)",
+                border: filter === f.id ? "none" : "1px solid var(--border)",
+                flexShrink: 0,
+                whiteSpace: "nowrap"
               }}
             >
-              {f === "ACTIVE" ? "Aktif" : f === "ALL" ? "Semua" : "Riwayat"}
+              {f.label}
             </button>
           ))}
         </div>
@@ -128,17 +153,25 @@ export default function BookingsPage() {
                       }
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0, flex: 1 }}>
                         <Avatar name={displayName} src={displayAvatar} size={40} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{displayName}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ 
+                            fontWeight: 700, 
+                            fontSize: "0.9rem",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}>
+                            {displayName}
+                          </div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                             {new Date(booking.createdAt).toLocaleDateString("id-ID")}
                           </div>
                         </div>
                       </div>
-                      <span className={`chip ${statusInfo.class}`} style={{ fontSize: "0.7rem" }}>
+                      <span className={`chip ${statusInfo.class}`} style={{ fontSize: "0.7rem", flexShrink: 0 }}>
                         {statusInfo.emoji} {statusInfo.label}
                       </span>
                     </div>

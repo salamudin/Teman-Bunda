@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Camera, Save, User, Phone, Calendar, Baby } from "lucide-react";
+import { ChevronLeft, Camera, Save, User, Phone, Calendar, Baby, FileText, Stethoscope, Award } from "lucide-react";
 import { useAuthStore, useUIStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
@@ -19,19 +19,29 @@ export default function EditProfilePage() {
     status: "",
     gestationalAge: "",
     age: "",
+    experience: "",
+    bio: "",
+    specializations: "",
+    harga: "",
   });
   const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
+      const u: any = user;
       setFormData({
-        name: user.name || "",
-        phone: user.phone || "",
-        status: user.status || "PROGRAM_HAMIL",
-        gestationalAge: user.gestationalAge?.toString() || "",
-        age: user.age?.toString() || "",
+        name: u.name || "",
+        phone: u.phone || "",
+        status: u.status || "PROGRAM_HAMIL",
+        gestationalAge: u.gestationalAge?.toString() || "",
+        age: u.age?.toString() || "",
+        experience: u.experience || "",
+        bio: u.bio || "",
+        specializations: u.specializations ? 
+          (Array.isArray(u.specializations) ? u.specializations.join(", ") : u.specializations) : "",
+        harga: u.harga?.toString() || "150000",
       });
-      setAvatar(user.avatar || null);
+      setAvatar(u.avatar || null);
     }
   }, [user]);
 
@@ -64,7 +74,8 @@ export default function EditProfilePage() {
         },
         body: JSON.stringify({
           ...formData,
-          avatar
+          avatar,
+          specializations: user?.role === "BIDAN" ? JSON.stringify(formData.specializations.split(",").map(s => s.trim()).filter(Boolean)) : undefined,
         }),
       });
 
@@ -150,55 +161,113 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              <div style={{ display: "flex", gap: 12 }}>
-                {/* Age */}
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">
-                    <Calendar size={14} style={{ marginRight: 6, display: "inline" }} /> Usia
-                  </label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    placeholder="Tahun"
-                  />
-                </div>
-
-                {/* Gestational Age */}
-                {formData.status === "HAMIL" && (
-                  <div className="form-group" style={{ flex: 1 }}>
+              {user?.role === "BIDAN" ? (
+                <>
+                  <div className="form-group">
                     <label className="form-label">
-                      <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Minggu
+                      <Award size={14} style={{ marginRight: 6, display: "inline" }} /> Pengalaman
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formData.experience}
+                      onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                      placeholder="Contoh: 10 Tahun"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Stethoscope size={14} style={{ marginRight: 6, display: "inline" }} /> Spesialisasi (Pisahkan dg koma)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formData.specializations}
+                      onChange={(e) => setFormData({ ...formData, specializations: e.target.value })}
+                      placeholder="Program Hamil, Kehamilan"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <FileText size={14} style={{ marginRight: 6, display: "inline" }} /> Biografi (Tentang Anda)
+                    </label>
+                    <textarea
+                      className="form-input"
+                      style={{ minHeight: "100px", resize: "vertical" }}
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      placeholder="Bidan bersertifikat dengan minat pada..."
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      💸 Harga Konsultasi (Rp)
                     </label>
                     <input
                       type="number"
                       className="form-input"
-                      value={formData.gestationalAge}
-                      onChange={(e) => setFormData({ ...formData, gestationalAge: e.target.value })}
-                      placeholder="Contoh: 24"
-                      min="1"
-                      max="42"
+                      value={formData.harga}
+                      onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
+                      placeholder="Contoh: 150000"
                     />
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    {/* Age */}
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label className="form-label">
+                        <Calendar size={14} style={{ marginRight: 6, display: "inline" }} /> Usia
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={formData.age}
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                        placeholder="Tahun"
+                      />
+                    </div>
 
-              {/* Status */}
-              <div className="form-group">
-                <label className="form-label">
-                  <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Status Bunda
-                </label>
-                <select
-                  className="form-input form-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="PROGRAM_HAMIL">Program Hamil</option>
-                  <option value="HAMIL">Sedang Hamil</option>
-                  <option value="MENYUSUI">Menyusui</option>
-                </select>
-              </div>
+                    {/* Gestational Age */}
+                    {formData.status === "HAMIL" && (
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label className="form-label">
+                          <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Minggu
+                        </label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={formData.gestationalAge}
+                          onChange={(e) => setFormData({ ...formData, gestationalAge: e.target.value })}
+                          placeholder="Contoh: 24"
+                          min="1"
+                          max="42"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <Baby size={14} style={{ marginRight: 6, display: "inline" }} /> Status Bunda
+                    </label>
+                    <select
+                      className="form-input form-select"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    >
+                      <option value="PROGRAM_HAMIL">Program Hamil</option>
+                      <option value="HAMIL">Sedang Hamil</option>
+                      <option value="MENYUSUI">Menyusui</option>
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
 
             <button

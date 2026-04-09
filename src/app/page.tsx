@@ -1,51 +1,53 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
+import lottie from "lottie-web";
 
 export default function SplashPage() {
   const router = useRouter();
-  const { token, user } = useAuthStore();
+  const { token, user, hasHydrated } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const lottieRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
-    const timer = setTimeout(() => {
-      if (token && user) {
-        router.push("/home");
-      } else {
-        router.push("/login");
-      }
-    }, 2500); // Show splash for 2.5 seconds
+
+    // Initialize Lottie animation
+    if (lottieRef.current) {
+      const anim = lottie.loadAnimation({
+        container: lottieRef.current,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        path: "/splash-animation.json",
+      });
+
+      return () => anim.destroy();
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !hasHydrated) return;
+
+        const timer = setTimeout(() => {
+      router.push("/home");
+    }, 1800); // 1.8 seconds splash
 
     return () => clearTimeout(timer);
-  }, [token, user, router]);
+  }, [token, user, router, mounted, hasHydrated]);
 
   if (!mounted) return null;
 
   return (
     <div className="splash-screen">
-      <div style={{ width: "25%", textAlign: "center" }}>
-        <h1 className="splash-text" style={{ fontSize: "1.2rem", marginBottom: 4, whiteSpace: "nowrap" }}>Teman Bunda</h1>
-        <p style={{ 
-          color: "#02394E", 
-          fontSize: "0.5rem", 
-          fontWeight: 700, 
-          letterSpacing: "0.05em",
-          opacity: 0.9,
-          textTransform: "uppercase",
-          lineHeight: 1.2
-        }}>
-          Konsultasi Bidan Profesional
-        </p>
+      {/* SEO text (Visually hidden for splash) */}
+      <div style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)" }}>
+        <h1>ChatBidan by TemanBunda - Konsultasi Bidan Online No. 1</h1>
+        <h2>Bidan, Chat Bidan, Konsultasi Bidan, Tanya Bidan, Teman Bunda</h2>
+        <p>Platform konsultasi bidan profesional online untuk program hamil, kehamilan, dan menyusui. Booking sesi konsultasi kapan saja, di mana saja.</p>
       </div>
-
-      <div style={{ 
-        position: "absolute", bottom: 60, width: "100%", 
-        display: "flex", justifyContent: "center" 
-      }}>
-        <div className="loading-spinner" style={{ borderTopColor: "#02394E", width: 16, height: 16 }} />
-      </div>
+      <div className="splash-lottie" ref={lottieRef} />
     </div>
   );
 }

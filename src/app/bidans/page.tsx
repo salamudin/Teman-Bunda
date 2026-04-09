@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { ChevronRight, Star, ShieldCheck, Search } from "lucide-react";
-import Link from "next/link";
-import { useAuthStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
+import { useAuthStore, useBidanStore } from "@/lib/store";
 import BottomBar from "@/components/BottomBar";
 import AuthGuard from "@/components/AuthGuard";
 import Avatar from "@/components/Avatar";
+import PageShell from "@/components/PageShell";
+
 
 interface Bidan {
   id: string;
@@ -25,35 +27,48 @@ const SPEC_COLORS: Record<string, string> = {
 };
 
 export default function BidansPage() {
-  const { token } = useAuthStore();
-  const [bidans, setBidans] = useState<Bidan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { token, user } = useAuthStore();
+  const { bidans, setBidans, lastFetched } = useBidanStore();
+  const [loading, setLoading] = useState(!bidans.length);
   const [query, setQuery] = useState("");
 
   const fetchBidans = useCallback(async () => {
     try {
+      // If we have data and it's fresh (< 5 mins), don't fetch blocking
+      const isFresh = lastFetched && Date.now() - lastFetched < 300000;
+      if (isFresh && bidans.length > 0) {
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/bidans", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await res.json();
-      setBidans(data.bidans || []);
+      if (data.bidans) {
+        setBidans(data.bidans);
+      }
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, bidans.length, lastFetched, setBidans]);
 
-  useEffect(() => { fetchBidans(); }, [fetchBidans]);
+  useEffect(() => { 
+    fetchBidans(); 
+  }, [fetchBidans]);
+
 
   const filtered = bidans.filter(
-    (b) =>
+    (b: Bidan) =>
       b.name.toLowerCase().includes(query.toLowerCase()) ||
-      b.specializations.some((s) => s.toLowerCase().includes(query.toLowerCase()))
+      b.specializations.some((s: string) => s.toLowerCase().includes(query.toLowerCase()))
   );
 
   return (
-    <AuthGuard>
+    <PageShell>
       <div className="page-no-pad">
         {/* Nav */}
         <div className="nav-bar">
@@ -63,13 +78,13 @@ export default function BidansPage() {
         {/* Hero */}
         <div className="hero" style={{ paddingBottom: 24 }}>
           <div style={{ position: "relative", zIndex: 1 }}>
-            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
+            <p style={{ fontSize: "0.85rem", color: "#3D444F", marginBottom: 6, fontWeight: 600 }}>
               Bidan Terpercaya
             </p>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 8 }}>
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 8, color: "#000000" }}>
               Ahlinya ada di sini 🩺
             </h1>
-            <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.7)", maxWidth: 340 }}>
+            <p style={{ fontSize: "0.875rem", color: "#3D444F", maxWidth: 340, fontWeight: 500 }}>
               Semua bidan kami diseleksi ketat — quality over quantity untuk kesehatan Anda.
             </p>
           </div>
@@ -105,11 +120,11 @@ export default function BidansPage() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {filtered.map((bidan, index) => (
-                <Link
+              {filtered.map((bidan: Bidan, index: number) => (
+                <div
                   key={bidan.id}
-                  href={`/bidans/${bidan.id}`}
-                  style={{ textDecoration: "none" }}
+                  style={{ textDecoration: "none", cursor: 'pointer' }}
+                  onClick={() => router.push(`/bidans/${bidan.id}`)}
                 >
                   <div
                     className="card animate-fade-up"
@@ -131,8 +146,9 @@ export default function BidansPage() {
 
                     <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
                       <div style={{ position: "relative" }}>
-                        <Avatar name={bidan.name} src={bidan.avatar} size={60} />
+                        <Avatar name={bidan.name} src={bidan.avatar} size={60} priority={index < 2} />
                         <div style={{
+
                           position: "absolute", bottom: -2, right: -2,
                           width: 18, height: 18, background: "var(--success)", borderRadius: "50%",
                           border: "2px solid var(--bg-card)",
@@ -142,15 +158,25 @@ export default function BidansPage() {
                         </div>
                       </div>
 
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div>
-                            <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 2 }}>{bidan.name}</h3>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <h3 style={{ 
+                              fontSize: "0.95rem", 
+                              fontWeight: 700, 
+                              marginBottom: 2,
+                              color: "var(--primary-dark)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis"
+                            }}>
+                              {bidan.name}
+                            </h3>
                             <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
                               {bidan.experience} pengalaman
                             </p>
                           </div>
-                          <ChevronRight size={18} color="var(--text-muted)" />
+                          <ChevronRight size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
                         </div>
 
                         <div style={{ display: "flex", alignItems: "center", gap: 4, margin: "8px 0" }}>
@@ -162,7 +188,7 @@ export default function BidansPage() {
                         </div>
 
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          {bidan.specializations.map((s) => (
+                          {bidan.specializations.map((s: string) => (
                             <span key={s} className={`chip ${SPEC_COLORS[s] || "chip-primary"}`}
                               style={{ fontSize: "0.65rem" }}>
                               {s}
@@ -180,18 +206,23 @@ export default function BidansPage() {
                     </p>
 
                     <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
-                      <Link
-                        href={`/bidans/${bidan.id}/booking`}
-                        style={{ textDecoration: "none" }}
-                        onClick={(e) => e.stopPropagation()}
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        id={`book-bidan-${bidan.id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!user) {
+                            router.push("/login");
+                          } else {
+                            router.push(`/bidans/${bidan.id}/booking`);
+                          }
+                        }}
                       >
-                        <button className="btn btn-primary btn-sm" id={`book-bidan-${bidan.id}`}>
-                          Book Konsultasi
-                        </button>
-                      </Link>
+                        Book Konsultasi
+                      </button>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -210,6 +241,7 @@ export default function BidansPage() {
 
         <BottomBar />
       </div>
-    </AuthGuard>
+    </PageShell>
   );
 }
+

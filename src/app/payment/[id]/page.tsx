@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Copy, Check, Upload, Clock, CheckCircle } from "lucide-react";
+import { ChevronLeft, Copy, Check, Upload, Clock, CheckCircle, CreditCard } from "lucide-react";
+
 import { useAuthStore, useUIStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
@@ -18,7 +19,7 @@ interface Booking {
   paymentProof?: string;
 }
 
-const BCA_ACCOUNT = process.env.NEXT_PUBLIC_BCA_ACCOUNT || "8970060022";
+const BCA_ACCOUNT = process.env.NEXT_PUBLIC_BCA_ACCOUNT || "0113400231";
 const BCA_NAME = process.env.NEXT_PUBLIC_BCA_NAME || "Novianti Tri Hastuti";
 
 export default function PaymentPage() {
@@ -92,6 +93,46 @@ export default function PaymentPage() {
     }
   }
 
+  async function payOnline() {
+    setUploading(true);
+    try {
+      const res = await fetch("/api/payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ bookingId: id })
+      });
+      const data = await res.json();
+      
+      if (data.token) {
+        (window as any).snap.pay(data.token, {
+          onSuccess: (result: any) => {
+            addToast("Pembayaran Berhasil!", "success");
+            router.push("/bookings");
+          },
+          onPending: (result: any) => {
+            addToast("Menunggu Pembayaran...", "info");
+            router.push("/bookings");
+          },
+          onError: (result: any) => {
+            addToast("Pembayaran Gagal!", "error");
+          },
+          onClose: () => {
+            addToast("Widget pembayaran ditutup", "info");
+          }
+        });
+      } else {
+        addToast("Gagal memulai pembayaran otomatis", "error");
+      }
+    } catch {
+      addToast("Gagal terhubung ke sistem pembayaran", "error");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function markPaid() {
     if (!paymentProof) {
       addToast("Harap upload foto bukti transfer terlebih dahulu", "error");
@@ -103,6 +144,7 @@ export default function PaymentPage() {
   function confirmPayment() {
     updateStatus("CONFIRMED");
   }
+
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
@@ -221,7 +263,37 @@ export default function PaymentPage() {
             {/* Payment card */}
             {!isPaid && (
               <>
+                {/* AUTO PAYMENT OPTION */}
+                <div style={{ marginBottom: 24 }}>
+                  <button
+                    className="btn btn-primary btn-full"
+                    onClick={payOnline}
+                    disabled={uploading}
+                    style={{ 
+                      height: 56, 
+                      fontSize: "1rem", 
+                      boxShadow: "0 4px 14px 0 rgba(167, 139, 250, 0.39)",
+                      background: "linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)",
+                      border: "none"
+                    }}
+                    id="midtrans-pay-btn"
+                  >
+                    <CreditCard size={18} style={{ marginRight: 8 }} />
+                    {uploading ? "Menyiapkan..." : "Bayar Otomatis (Midtrans)"}
+                  </button>
+                  <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 8 }}>
+                    Dukung GoPay, QRIS, Virtual Account, dll.
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                  <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>ATAU TRANSFER MANUAL</span>
+                  <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                </div>
+
                 <div className="bank-card" style={{ marginBottom: 20 }}>
+
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                     <div style={{
                       background: "rgba(255,255,255,0.2)", borderRadius: 8, padding: "6px 12px",

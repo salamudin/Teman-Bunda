@@ -2,7 +2,7 @@
 
 :root {
   --primary: #02394E;
-  --primary-light: #A6C1CC;
+  --primary-light: #C0E0EC;
   --primary-dark: #012A3A;
   --secondary: #E2E8F0;
   --secondary-light: #F1F5F9;
@@ -24,9 +24,9 @@
   --text-muted: #94A3B8;
 
   --gradient-primary: var(--primary);
-  --gradient-hero: #A6C1CC;
+  --gradient-hero: #C0E0EC;
   --gradient-card: var(--bg-card);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(163,191,202,0.2) 0%, transparent 70%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(192,224,236,0.2) 0%, transparent 70%);
 
   --radius-sm: 8px;
   --radius-md: 16px;
@@ -91,10 +91,9 @@ body {
 }
 
 .nav-logo {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  color: #000000;
+  color: #333333;
 }
 
 .nav-icon-btn {
@@ -860,37 +859,15 @@ body {
 .splash-screen {
   position: fixed;
   inset: 0;
-  background: #A6C1CC;
+  background: #C0E0EC;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-.splash-logo {
-  width: 35%;
-  max-width: 160px;
+.splash-lottie {
+  width: 46vmin;
+  height: 46vmin;
   aspect-ratio: 1;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-md);
-  animation: pulse 2s infinite;
-}
-
-.splash-text {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #02394E;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
 }

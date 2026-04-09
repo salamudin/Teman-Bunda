@@ -21,6 +21,7 @@ interface Bidan {
   experience: string;
   specializations: string[];
   rating: number;
+  harga: number;
   availabilities: Availability[];
 }
 
@@ -52,7 +53,8 @@ export default function BookingPage() {
 
   const fetchBidan = useCallback(async () => {
     try {
-      const res = await fetch(`/api/bidans/${bidanId}`);
+      // Always fetch fresh data so bidan schedule changes are reflected immediately
+      const res = await fetch(`/api/bidans/${bidanId}`, { cache: "no-store" });
       const data = await res.json();
       setBidan(data.bidan);
     } catch {
@@ -135,15 +137,21 @@ export default function BookingPage() {
           <div style={{ padding: "16px 20px 0" }}>
             <div className="glass-card" style={{ display: "flex", gap: 12, alignItems: "center", padding: 14 }}>
               <Avatar name={bidan.name} src={bidan.avatar} size={44} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>{bidan.name}</div>
-                <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ 
+                  fontWeight: 700, 
+                  fontSize: "0.9rem",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}>{bidan.name}</div>
+                <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   ⭐ {bidan.rating.toFixed(1)} • {bidan.experience}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>per sesi</div>
-                <div style={{ fontWeight: 700, color: "var(--primary-light)" }}>Rp 150.000</div>
+                <div style={{ fontWeight: 700, color: "var(--primary-light)" }}>Rp {bidan.harga?.toLocaleString("id-ID") || "150.000"}</div>
               </div>
             </div>
           </div>
@@ -177,7 +185,17 @@ export default function BookingPage() {
               {dateKeys.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">📅</div>
-                  <p style={{ color: "var(--text-secondary)" }}>Tidak ada slot tersedia saat ini</p>
+                  <p style={{ color: "var(--text-secondary)", marginBottom: 8, fontWeight: 600 }}>Belum ada jadwal tersedia</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginBottom: 16 }}>
+                    Bidan sedang menyusun jadwal baru. Coba lagi nanti.
+                  </p>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: "var(--bg-elevated)", color: "var(--text-primary)" }}
+                    onClick={() => { setLoading(true); fetchBidan(); }}
+                  >
+                    🔄 Refresh Jadwal
+                  </button>
                 </div>
               ) : (
                 <div className="date-grid">
@@ -244,7 +262,7 @@ export default function BookingPage() {
                   },
                   { label: "Jam", value: `${selectedSlot.startTime} – ${selectedSlot.endTime} WIB` },
                   { label: "Tipe", value: "Chat Konsultasi" },
-                  { label: "Harga", value: "Rp 150.000" },
+                  { label: "Harga", value: `Rp ${bidan.harga?.toLocaleString("id-ID") || "150.000"}` },
                 ].map((row) => (
                   <div key={row.label} style={{
                     display: "flex", justifyContent: "space-between",

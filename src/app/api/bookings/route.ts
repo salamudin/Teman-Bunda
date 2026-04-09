@@ -1,8 +1,9 @@
-// GET /api/bookings - User's bookings
-// POST /api/bookings - Create booking
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromHeader } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,6 +58,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Slot tidak tersedia" }, { status: 400 });
     }
 
+    // Get bidan for price
+    const bidanAccount = await prisma.bidan.findUnique({
+      where: { id: bidanId },
+      select: { harga: true, name: true }
+    });
+    if (!bidanAccount) return NextResponse.json({ error: "Bidan tidak ditemukan" }, { status: 404 });
+
     // Create booking + mark slot as booked
     const [booking] = await prisma.$transaction([
       prisma.booking.create({
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
           availabilityId,
           notes: notes || null,
           status: "WAITING_PAYMENT",
-          amount: 150000,
+          amount: bidanAccount.harga,
         },
         include: {
           bidan: { select: { name: true } },
@@ -85,9 +93,18 @@ export async function POST(request: NextRequest) {
         userId: payload.userId as string,
         bookingId: booking.id,
         title: "Booking Berhasil",
-        body: `Booking dengan ${booking.bidan.name} berhasil dibuat. Silakan lakukan pembayaran.`,
+        body: `Booking dengan ${bidanAccount.name} berhasil dibuat. Silakan lakukan pembayaran.`,
       },
     });
+    
+    // Purge cache for bidan pages to see the slot is now booked
+    revalidatePath("/home");
+    revalidatePath("/");
+    revalidatePath("/bidans");
+    revalidatePath(`/bidans/${bidanId}`);
+    revalidatePath(`/bidans/${bidanId}/booking`);
+    revalidatePath("/api/bidans");
+    revalidatePath(`/api/bidans/${bidanId}`);
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (error) {

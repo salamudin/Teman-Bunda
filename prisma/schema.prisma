@@ -17,7 +17,9 @@ model User {
   age            Int?
   status         String    @default("PROGRAM_HAMIL") // PROGRAM_HAMIL | HAMIL | MENYUSUI
   gestationalAge Int? // usia kehamilan dalam minggu
+  hpht           DateTime?
   dueDate        DateTime?
+
   avatar         String?
   role           String    @default("USER") // USER | ADMIN | BIDAN
   createdAt      DateTime  @default(now())
@@ -40,6 +42,7 @@ model Bidan {
   rating          Float    @default(0)
   totalReviews    Int      @default(0)
   isActive        Boolean  @default(true)
+  harga           Int      @default(150000)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -69,8 +72,11 @@ model Booking {
   status         String   @default("WAITING_PAYMENT") // WAITING_PAYMENT | PAID | CONFIRMED | COMPLETED | CANCELLED
   amount         Int      @default(150000) // dalam rupiah
   paymentProof   String?
+  paymentToken   String?  // Midtrans Snap Token
+  grossAmount    Int?     // For Midtrans gross_amount mapping
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
 
   user          User           @relation(fields: [userId], references: [id])
   bidan         Bidan          @relation(fields: [bidanId], references: [id])
@@ -86,7 +92,9 @@ model Message {
   senderId   String
   senderType String // USER | BIDAN
   senderName String // denormalized for display
-  content    String
+  content    String? // optional if caption is not provided
+  imageUrl   String? // for image messages
+  type       String   @default("TEXT") // TEXT | IMAGE
   createdAt  DateTime @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])

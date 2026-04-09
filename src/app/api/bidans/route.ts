@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyToken, getTokenFromHeader } from "@/lib/auth";
 
+export const revalidate = 60; 
+
 export async function GET() {
   try {
     const bidans = await prisma.bidan.findMany({
@@ -17,6 +19,7 @@ export async function GET() {
         specializations: true,
         rating: true,
         totalReviews: true,
+        harga: true,
       },
       orderBy: { rating: "desc" },
     });
@@ -26,7 +29,10 @@ export async function GET() {
       specializations: JSON.parse(b.specializations),
     }));
 
-    return NextResponse.json({ bidans: parsed });
+    const response = NextResponse.json({ bidans: parsed });
+    response.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=86400");
+    return response;
+
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -54,6 +60,7 @@ export async function POST(request: NextRequest) {
         bio: bio || "",
         specializations: JSON.stringify(specializations || []),
         phone: phone || null,
+        harga: body.harga || 150000,
       },
     });
 

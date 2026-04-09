@@ -1,13 +1,16 @@
 "use client";
+import Image from "next/image";
 import { UserCircle } from "lucide-react";
 
 interface AvatarProps {
   name?: string;
   src?: string | null;
   size?: number;
+  priority?: boolean;
 }
 
-export default function Avatar({ name, src, size = 44 }: AvatarProps) {
+export default function Avatar({ name, src, size = 44, priority = false }: AvatarProps) {
+
   const initials = name
     ?.split(" ")
     .map((w) => w[0])
@@ -17,15 +20,20 @@ export default function Avatar({ name, src, size = 44 }: AvatarProps) {
 
   if (src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={name || "Avatar"}
-        className="avatar"
-        style={{ width: size, height: size }}
-      />
+      <div className="avatar" style={{ width: size, height: size, position: 'relative', overflow: 'hidden' }}>
+        <Image
+          src={src}
+          alt={name || "Avatar"}
+          fill
+          style={{ objectFit: 'cover' }}
+          sizes={`${size}px`}
+          priority={priority}
+        />
+
+      </div>
     );
   }
+
 
   return (
     <div

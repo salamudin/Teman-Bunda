@@ -49,7 +49,17 @@ export async function POST(request: NextRequest) {
         status: isBidan ? "BIDAN" : account.status,
         role,
         gestationalAge: isBidan ? null : account.gestationalAge,
+        hpht: isBidan ? undefined : account.hpht,
+        dueDate: isBidan ? undefined : account.dueDate,
         avatar: account.avatar,
+        phone: account.phone,
+        age: isBidan ? null : account.age,
+
+        // Bidan specific
+        experience: account.experience || undefined,
+        bio: account.bio || undefined,
+        specializations: account.specializations || undefined,
+        harga: account.harga || undefined,
       },
     });
   } catch (error) {

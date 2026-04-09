@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Star, ShieldCheck, Calendar, MessageCircle, Clock, Edit2 } from "lucide-react";
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, useBidanStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import Avatar from "@/components/Avatar";
 import ToastContainer from "@/components/ToastContainer";
@@ -23,6 +23,7 @@ interface Bidan {
   specializations: string[];
   rating: number;
   totalReviews: number;
+  harga: number;
   availabilities: Availability[];
 }
 
@@ -30,9 +31,14 @@ export default function BidanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { token, user } = useAuthStore();
+  const { bidans } = useBidanStore();
   const addToast = useUIStore((s) => s.addToast);
-  const [bidan, setBidan] = useState<Bidan | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Try to find in cache first for instant load
+  const cachedBidan = bidans.find(b => b.id === id);
+  const [bidan, setBidan] = useState<Bidan | null>(cachedBidan || null);
+  const [loading, setLoading] = useState(!cachedBidan);
+
 
   const isMe = user?.role === "BIDAN" && user?.id === id;
 
@@ -80,13 +86,15 @@ export default function BidanDetailPage() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await res.json();
-      setBidan(data.bidan);
+      if (data.bidan) {
+        setBidan(data.bidan);
+      }
     } catch {
-      addToast("Gagal memuat profil bidan", "error");
+      if (!bidan) addToast("Gagal memuat profil bidan", "error");
     } finally {
       setLoading(false);
     }
-  }, [id, token, addToast]);
+  }, [id, token, addToast, bidan]);
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
@@ -129,7 +137,8 @@ export default function BidanDetailPage() {
             <div className="hero" style={{ paddingBottom: 32 }}>
               <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
                 <div style={{ position: "relative" }}>
-                  <Avatar name={bidan.name} src={bidan.avatar} size={96} />
+                  <Avatar name={bidan.name} src={bidan.avatar} size={96} priority />
+
                   <div style={{
                     position: "absolute", bottom: 2, right: 2,
                     background: "var(--success)", borderRadius: "50%",
@@ -151,8 +160,18 @@ export default function BidanDetailPage() {
                     </label>
                   )}
                 </div>
-                <div style={{ textAlign: "center" }}>
-                  <h1 style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 4, color: "#000000" }}>{bidan.name}</h1>
+                <div style={{ textAlign: "center", maxWidth: "280px" }}>
+                  <h1 style={{ 
+                    fontSize: "1.3rem", 
+                    fontWeight: 800, 
+                    marginBottom: 4, 
+                    color: "#000000",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
+                  }}>
+                    {bidan.name}
+                  </h1>
                   <p style={{ color: "#3D444F", fontSize: "0.875rem", fontWeight: 600 }}>
                     {bidan.experience} pengalaman
                   </p>
@@ -199,8 +218,12 @@ export default function BidanDetailPage() {
                     <h2 style={{ fontSize: "1rem", fontWeight: 700 }}>Jadwal Tersedia</h2>
                   </div>
                   {isMe && (
-                    <button onClick={(e) => { e.preventDefault(); alert("Fitur Manage Jadwal dalam pengembangan!"); }} className="btn btn-sm" style={{ padding: "4px 8px", background: "rgba(16,185,129,0.1)", color: "#10B981" }}>
-                      Manage Jadwal
+                    <button 
+                      onClick={() => router.push("/profile/availability")} 
+                      className="btn btn-sm" 
+                      style={{ padding: "4px 8px", background: "rgba(16,185,129,0.1)", color: "#10B981" }}
+                    >
+                      Kelola Jadwal
                     </button>
                   )}
                 </div>
@@ -259,7 +282,7 @@ export default function BidanDetailPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Harga konsultasi</div>
                   <div style={{ fontSize: "1.1rem", fontWeight: 700 }}>
-                    Rp 150.000 <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--text-muted)" }}>/sesi</span>
+                    Rp {bidan.harga?.toLocaleString("id-ID") || "150.000"} <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--text-muted)" }}>/sesi</span>
                   </div>
                 </div>
                 {isMe ? (

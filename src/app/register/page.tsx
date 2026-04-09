@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import { useAuthStore, useUIStore } from "@/lib/store";
 import ToastContainer from "@/components/ToastContainer";
+
+import { GoogleLogin } from "@react-oauth/google";
 
 const STATUS_OPTIONS = [
   { value: "PROGRAM_HAMIL", label: "🌱 Program Hamil", desc: "Sedang merencanakan kehamilan" },
@@ -14,7 +16,7 @@ const STATUS_OPTIONS = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
+  const { login, isAuthenticated, hasHydrated } = useAuthStore();
   const addToast = useUIStore((s) => s.addToast);
 
   const [form, setForm] = useState({
@@ -24,6 +26,12 @@ export default function RegisterPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.replace("/home");
+    }
+  }, [hasHydrated, isAuthenticated, router]);
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -58,6 +66,30 @@ export default function RegisterPage() {
     }
   }
 
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Pendaftaran Google gagal");
+      } else {
+        login(data.user, data.token);
+        addToast(`Akun berhasil dibuat! Selamat datang, ${data.user.name}! 🎉`, "success");
+        router.push("/home");
+      }
+    } catch {
+      setError("Terjadi kesalahan saat pendaftaran Google.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <ToastContainer />
@@ -71,7 +103,7 @@ export default function RegisterPage() {
           <div>
             <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#000000" }}>Buat Akun</h1>
             <p style={{ fontSize: "0.85rem", color: "#3D444F", fontWeight: 500 }}>
-              Sudah punya akun? <Link href="/login" style={{ color: "#A6C1CC", fontWeight: 700 }}>Masuk</Link>
+              Sudah punya akun? <Link href="/login" style={{ color: "#C0E0EC", fontWeight: 700 }}>Masuk</Link>
             </p>
           </div>
         </div>
@@ -162,6 +194,25 @@ export default function RegisterPage() {
             <button type="submit" id="register-btn" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? "Membuat akun..." : "Buat Akun Sekarang →"}
             </button>
+
+            <div style={{ display: "flex", alignItems: "center", margin: "24px 0", color: "#8E98A8" }}>
+              <div style={{ flex: 1, height: 1, background: "#EAEAEA" }} />
+              <span style={{ margin: "0 16px", fontSize: "0.85rem", fontWeight: 500 }}>atau daftar dengan</span>
+              <div style={{ flex: 1, height: 1, background: "#EAEAEA" }} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Pendaftaran Google gagal. Coba lagi.")}
+                useOneTap={false}
+                theme="outline"
+                size="large"
+                shape="pill"
+                text="continue_with"
+                width="100%"
+              />
+            </div>
           </form>
         </div>
       </div>

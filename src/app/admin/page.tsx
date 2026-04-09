@@ -103,7 +103,7 @@ export default function AdminPage() {
           {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
             {[
-              { icon: Calendar, label: "Total Booking", value: bookings.length, color: "#A6C1CC" },
+              { icon: Calendar, label: "Total Booking", value: bookings.length, color: "#C0E0EC" },
               { icon: Clock, label: "Perlu Konfirmasi", value: pendingCount, color: "#FBBF24" },
               { icon: DollarSign, label: "Revenue", value: `Rp ${(totalRevenue / 1000).toFixed(0)}K`, color: "#10B981" },
             ].map((item) => {
@@ -161,11 +161,21 @@ export default function AdminPage() {
                   <div key={booking.id} className="card" style={{ padding: 16 }}>
                     {/* Header */}
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0, flex: 1 }}>
                         <Avatar name={booking.user.name} size={36} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: "0.875rem" }}>{booking.user.name}</div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{booking.user.email}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ 
+                            fontWeight: 700, 
+                            fontSize: "0.875rem",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}>
+                            {booking.user.name}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {booking.user.email}
+                          </div>
                         </div>
                       </div>
                       <span style={{

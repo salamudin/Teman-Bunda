@@ -9,17 +9,26 @@ interface User {
   status: string;
   role: string;
   gestationalAge: number | null;
+  hpht?: string;
+  dueDate?: string;
   avatar: string | null;
   phone: string | null;
   age: number | null;
+  experience?: string;
+  bio?: string;
+  specializations?: string;
+  harga?: number;
 }
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
+  setHasHydrated: (val: boolean) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
+  setUser: (user: User) => void;
   updateUser: (user: Partial<User>) => void;
 }
 
@@ -29,14 +38,23 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      hasHydrated: false,
+      setHasHydrated: (val) => set({ hasHydrated: val }),
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      setUser: (user) => set({ user }),
       updateUser: (updates) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
     }),
-    { name: "temanbunda-auth" }
+
+    { 
+      name: "temanbunda-auth",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
   )
 );
 
@@ -64,3 +82,38 @@ export const useUIStore = create<UIState>((set) => ({
   removeToast: (id) =>
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 }));
+
+interface BidanState {
+  bidans: any[];
+  setBidans: (bidans: any[]) => void;
+  lastFetched: number | null;
+}
+
+export const useBidanStore = create<BidanState>()(
+  persist(
+    (set) => ({
+      bidans: [],
+      setBidans: (bidans) => set({ bidans, lastFetched: Date.now() }),
+      lastFetched: null,
+    }),
+    { name: "temanbunda-bidans" }
+  )
+);
+
+interface BookingState {
+  bookings: any[];
+  setBookings: (bookings: any[]) => void;
+  lastFetched: number | null;
+}
+
+export const useBookingStore = create<BookingState>()(
+  persist(
+    (set) => ({
+      bookings: [],
+      setBookings: (bookings) => set({ bookings, lastFetched: Date.now() }),
+      lastFetched: null,
+    }),
+    { name: "temanbunda-bookings" }
+  )
+);
+

@@ -36,26 +36,25 @@ export async function POST(
     const payload = token ? verifyToken(token) : null;
     if (!payload) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { content } = await request.json();
-    if (!content?.trim()) {
+    const { content, imageUrl, type = "TEXT" } = await request.json();
+    
+    if (type === "TEXT" && !content?.trim()) {
       return NextResponse.json({ error: "Pesan tidak boleh kosong" }, { status: 400 });
     }
+    if (type === "IMAGE" && !imageUrl) {
+      return NextResponse.json({ error: "Gambar tidak boleh kosong" }, { status: 400 });
+    }
 
-    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await prisma.booking.findUnique({ 
+      where: { id: bookingId },
+      include: { user: true, bidan: true }
+    });
     if (!booking) {
       return NextResponse.json({ error: "Booking tidak ditemukan" }, { status: 404 });
     }
 
     const senderType = payload.role === "BIDAN" ? "BIDAN" : "USER";
-    let senderName = "Unknown";
-    
-    if (senderType === "BIDAN") {
-      const bidan = await prisma.bidan.findUnique({ where: { id: payload.userId as string } });
-      if (bidan) senderName = bidan.name;
-    } else {
-      const user = await prisma.user.findUnique({ where: { id: payload.userId as string } });
-      if (user) senderName = user.name;
-    }
+    const senderName = senderType === "BIDAN" ? booking.bidan.name : booking.user.name;
 
     const message = await prisma.message.create({
       data: {
@@ -63,7 +62,9 @@ export async function POST(
         senderId: payload.userId as string,
         senderType,
         senderName,
-        content: content.trim(),
+        content: content?.trim() || null,
+        imageUrl: imageUrl || null,
+        type,
       },
     });
 

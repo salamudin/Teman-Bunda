@@ -33,20 +33,40 @@ export default function BottomSheet({ isOpen, onClose, title, children }: Bottom
       <div 
         className="bottom-sheet-container"
         onClick={(e) => e.stopPropagation()}
+        style={{ position: "relative" }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)" }}>{title}</h3>
-          <button 
-            onClick={onClose} 
-            style={{ 
-              background: "none", border: "none", color: "var(--text-muted)", 
-              padding: 4, cursor: "pointer", display: "flex" 
-            }}
-          >
-            <X size={20} />
-          </button>
+        <button 
+          onClick={onClose} 
+          aria-label="Close"
+          style={{ 
+            position: "absolute", right: 12, top: 12,
+            background: "none", border: "none", color: "var(--text-muted)", 
+            padding: 8, cursor: "pointer", display: "flex", borderRadius: "50%",
+            zIndex: 10
+          }}
+        >
+          <X size={20} />
+        </button>
+        
+        <div style={{ paddingTop: 20 }}>
+          {title && (
+            <h3 style={{ 
+              fontSize: "1.25rem", 
+              fontWeight: 850, 
+              color: "var(--text-primary)",
+              textAlign: "center",
+              marginBottom: 16,
+              padding: "0 32px",
+              lineHeight: 1.3
+            }}>
+              {title}
+            </h3>
+          )}
+
+          <div style={{ textAlign: "center" }}>
+            {children}
+          </div>
         </div>
-        {children}
       </div>
     </div>
   );
