@@ -87,6 +87,42 @@ export default function RootLayout({
           defer 
         />
         <script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          defer
+        />
+        <script
+          id="onesignal-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.OneSignalDeferred = window.OneSignalDeferred || [];
+              window.OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.init({
+                  appId: "0f10c9ed-bfd9-45b5-a617-04f60abd1cde",
+                  serviceWorkerParam: { scope: "/" },
+                  notifyButton: { enable: false },
+                  promptOptions: {
+                    slidedown: {
+                      prompts: [{
+                        type: "push",
+                        autoPrompt: true,
+                        text: {
+                          actionMessage: "ChatBidan ingin mengirim notifikasi untuk update konsultasi Anda.",
+                          acceptButton: "Izinkan",
+                          cancelButton: "Nanti saja"
+                        },
+                        delay: {
+                          pageViews: 1,
+                          timeDelay: 5
+                        }
+                      }]
+                    }
+                  }
+                });
+              });
+            `,
+          }}
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

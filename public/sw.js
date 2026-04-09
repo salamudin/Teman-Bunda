@@ -1,5 +1,6 @@
 // ChatBidan Service Worker v2
 // Cache-first for static, Network-first for API/navigation
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
 const CACHE_VERSION = 'chatbidan-v2';
 const OFFLINE_URL = '/offline.html';
