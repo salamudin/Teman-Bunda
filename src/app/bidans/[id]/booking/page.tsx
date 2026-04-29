@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Check, ChevronRight } from "lucide-react";
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, useBookingStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import Avatar from "@/components/Avatar";
 import ToastContainer from "@/components/ToastContainer";
@@ -51,6 +51,8 @@ export default function BookingPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const { bookings, setBookings } = useBookingStore();
+
   const fetchBidan = useCallback(async () => {
     try {
       // Always fetch fresh data so bidan schedule changes are reflected immediately
@@ -98,6 +100,12 @@ export default function BookingPage() {
         addToast(data.error || "Booking gagal", "error");
       } else {
         addToast("Booking berhasil! Lanjut ke pembayaran 🎉", "success");
+        
+        // Sync with global store: add the new booking to the front of the list
+        if (data.booking) {
+          setBookings([data.booking, ...bookings]);
+        }
+        
         router.push(`/payment/${data.booking.id}`);
       }
     } catch {

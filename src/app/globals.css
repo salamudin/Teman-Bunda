@@ -73,6 +73,8 @@ body {
   position: relative;
   background: var(--bg);
   box-shadow: 0 0 40px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── Navigation ─── */
@@ -174,12 +176,16 @@ body {
 
 /* ─── Page container ─── */
 .page {
-  padding: 20px 20px calc(80px + 20px);
-  min-height: 100vh;
+  padding: 24px 20px calc(88px + env(safe-area-inset-bottom, 20px));
+  min-height: calc(100vh - var(--nav-height));
+  display: flex;
+  flex-direction: column;
 }
 .page-no-pad {
-  padding-bottom: calc(80px + 20px);
-  min-height: 100vh;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 20px));
+  min-height: calc(100vh - var(--nav-height));
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── Section headings ─── */
@@ -425,6 +431,14 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
 
 /* ─── Misc utilities ─── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .text-gradient {
   color: #000000;
 }

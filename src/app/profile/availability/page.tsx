@@ -5,6 +5,7 @@ import { ChevronLeft, Plus, Trash2, Calendar as CalendarIcon, Clock, AlertCircle
 import { useAuthStore, useUIStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
+import PageShell from "@/components/PageShell";
 
 interface Availability {
   id: string;
@@ -116,8 +117,9 @@ export default function AvailabilityPage() {
 
   return (
     <AuthGuard>
-      <ToastContainer />
-      <div className="page-no-pad">
+      <PageShell>
+        <ToastContainer />
+        <div className="page-no-pad">
         <div className="nav-bar">
           <button onClick={() => router.back()} className="nav-icon-btn"><ChevronLeft size={20} /></button>
           <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>Kelola Jadwal</span>
@@ -252,8 +254,9 @@ export default function AvailabilityPage() {
               Jadwal yang sudah dipesan oleh pasien tidak dapat dihapus atau dirubah tanpa pembatalan dari pihak admin.
             </p>
           </div>
+          </div>
         </div>
-      </div>
+      </PageShell>
     </AuthGuard>
   );
 }

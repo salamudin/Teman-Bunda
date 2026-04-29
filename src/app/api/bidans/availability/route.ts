@@ -15,8 +15,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     const availabilities = await prisma.availability.findMany({
-      where: { bidanId: payload.userId as string },
+      where: { 
+        bidanId: payload.userId as string,
+        date: { gte: today }
+      },
       orderBy: [
         { date: "asc" },
         { startTime: "asc" }

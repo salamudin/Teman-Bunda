@@ -1,32 +1,29 @@
-// ChatBidan Service Worker v2
-// Cache-first for static, Network-first for API/navigation
+// ChatBidan Service Worker v5
+// Conservative policy after SSR rollout:
+//   - Navigations: network-only with offline fallback (never cache SSR'd HTML,
+//     so user-specific pages like /bookings can't leak across sessions and
+//     stale HTML can't reference deleted JS chunks from previous deploys).
+//   - Static assets (icons, logo, manifest): cache-first for instant repeat loads.
+//   - Next.js chunks (/_next/...): pass through to network + browser cache —
+//     Vercel already serves them with immutable Cache-Control, and caching them
+//     here just makes chunk-hash mismatches harder to recover from after deploys.
+//   - API + OneSignal + Supabase: always network.
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_VERSION = 'chatbidan-v2';
+const CACHE_VERSION = 'chatbidan-v5';
 const OFFLINE_URL = '/offline.html';
 
-// Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
-  '/',
   OFFLINE_URL,
   '/icon.png',
   '/logo-vertical.png',
   '/manifest.json',
 ];
 
-// Routes to always fetch fresh from network (never cache)
-const NETWORK_ONLY_PATTERNS = [
-  /^\/api\//,
-  /supabase\.co/,
-  /onesignal\.com/,
-];
-
 // ─── INSTALL ───────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_ASSETS))
   );
   self.skipWaiting();
 });
@@ -34,11 +31,9 @@ self.addEventListener('install', (event) => {
 // ─── ACTIVATE ──────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) =>
+    caches.keys().then((keys) =>
       Promise.all(
-        keyList
-          .filter((key) => key !== CACHE_VERSION)
-          .map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))
       )
     )
   );
@@ -48,67 +43,48 @@ self.addEventListener('activate', (event) => {
 // ─── FETCH ─────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip cross-origin requests we don't control
-  if (url.origin !== self.location.origin && !url.hostname.includes('chatbidan')) {
-    // Allow but don't cache cross-origin except if it matches our asset patterns
-    return;
-  }
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
 
-  // Network-only for API calls and third-party auth
-  const isNetworkOnly = NETWORK_ONLY_PATTERNS.some((pattern) =>
-    pattern.test(request.url)
-  );
-  if (isNetworkOnly) {
-    event.respondWith(fetch(request));
-    return;
-  }
+  // Let the browser handle cross-origin requests (CDN assets, analytics, etc.)
+  if (!isSameOrigin) return;
 
-  // Navigation requests: Network-first with offline fallback
+  // Navigations → network-only, fall back to offline page only on true failure.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache fresh page for future offline access
-          const responseClone = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then(
-            (cached) => cached || caches.match(OFFLINE_URL)
-          );
-        })
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Static assets: Cache-first strategy
+  // Next.js build output and API calls → always hit the network. Chunks are
+  // content-hashed so the browser's own HTTP cache is the right place, not us.
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Static assets (images, fonts, manifest, offline.html, etc.) → cache-first.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-
       return fetch(request)
         .then((response) => {
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-          const responseClone = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put(request, clone));
           return response;
         })
         .catch(() => {
-          // For image requests, return nothing rather than offline page
-          if (request.destination === 'image') return new Response('', { status: 404 });
-          return caches.match(OFFLINE_URL);
+          // Don't hand back HTML when the browser asked for an image — let the
+          // request fail visibly instead of silently serving offline.html.
+          if (request.destination === 'image') {
+            return new Response('', { status: 404 });
+          }
+          return Response.error();
         });
     })
   );
@@ -148,14 +124,12 @@ self.addEventListener('notificationclick', (event) => {
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
-        // Focus existing window if open
         for (const client of windowClients) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.navigate(targetUrl);
             return client.focus();
           }
         }
-        // Otherwise open new window
         if (clients.openWindow) return clients.openWindow(targetUrl);
       })
   );

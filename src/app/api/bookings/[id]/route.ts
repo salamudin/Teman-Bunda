@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, getTokenFromHeader } from "@/lib/auth";
+import { invalidateAdminStatsCache } from "@/lib/adminStatsCache";
 
 export async function GET(
   request: NextRequest,
@@ -67,6 +68,9 @@ export async function PATCH(
         ...(paymentProof && { paymentProof }),
       },
     });
+
+    // Status change shifts the admin dashboard's cached groupBy aggregate.
+    if (status && status !== booking.status) invalidateAdminStatsCache();
 
     // Send notification on status change
     if (status === "CONFIRMED") {

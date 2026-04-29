@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Clock, XCircle, ChevronLeft, Users, Calendar, DollarSign } from "lucide-react";
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, useAdminStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
 import Avatar from "@/components/Avatar";
+import PageShell from "@/components/PageShell";
 
 interface Booking {
   id: string;
@@ -28,31 +29,82 @@ export default function AdminPage() {
   const router = useRouter();
   const { user, token } = useAuthStore();
   const addToast = useUIStore((s) => s.addToast);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    bookingsMap, lastFetchedMap, stats: serverStats, setBookings, hasHydrated,
+  } = useAdminStore();
+
   const [filter, setFilter] = useState("PAID");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchBookings = useCallback(async () => {
+  const bookings = bookingsMap[filter] || [];
+  const lastFetched = lastFetchedMap[filter];
+
+  // Only show the skeleton when we have NO cached data anywhere. Switching
+  // filters keeps the prior list visible until the new one arrives.
+  const anyCached = Object.values(bookingsMap).some((arr) => arr && arr.length > 0);
+  const initialLoading = !hasHydrated || (!anyCached && !lastFetched);
+  const isStale = bookings.length === 0 && !lastFetched && anyCached;
+
+  // Cancel in-flight requests on filter change so a slow "ALL" can't clobber
+  // a fast "PAID" result that arrives later.
+  const abortRef = useRef<AbortController | null>(null);
+  // Stats are filter-agnostic; only request them once per session, then rely on
+  // the server's TTL cache. This drops the heavy groupBy from every filter click.
+  const statsLoadedRef = useRef(false);
+
+  const fetchBookings = useCallback(async (isLoadMore = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const res = await fetch("/api/admin/bookings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) { router.push("/home"); return; }
+      const currentPage = isLoadMore ? page + 1 : 1;
+      if (isLoadMore) setLoadingMore(true);
+
+      const wantStats = !statsLoadedRef.current;
+      const res = await fetch(
+        `/api/admin/bookings?status=${filter}&page=${currentPage}&limit=20${wantStats ? "" : "&stats=0"}`,
+        { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }
+      );
+      if (!res.ok) { if (!isLoadMore) router.push("/home"); return; }
       const data = await res.json();
-      setBookings(data.bookings || []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, [token, router]);
+      if (data.stats) statsLoadedRef.current = true;
+
+      if (isLoadMore) {
+        setBookings(filter, [...bookings, ...(data.bookings || [])], data.stats);
+        setPage(currentPage);
+      } else {
+        setBookings(filter, data.bookings || [], data.stats);
+        setPage(1);
+      }
+
+      if (data.pagination) {
+        setHasMore(
+          typeof data.pagination.hasMore === "boolean"
+            ? data.pagination.hasMore
+            : data.pagination.page < data.pagination.totalPages
+        );
+      }
+    } catch { /* aborted or network error; ignore */ }
+    finally {
+      setLoadingMore(false);
+    }
+  }, [token, router, filter, page, bookings, setBookings]);
 
   useEffect(() => {
-    if (user?.role !== "ADMIN") { router.push("/home"); return; }
-    fetchBookings();
-  }, [user, fetchBookings, router]);
+    if (hasHydrated && user?.role === "ADMIN") {
+      fetchBookings();
+    }
+    return () => abortRef.current?.abort();
+  }, [user, fetchBookings, hasHydrated]);
 
-  const filtered = filter === "ALL"
-    ? bookings
-    : bookings.filter((b) => b.status === filter);
+  const filtered = bookings;
+
+  const totalRevenue = serverStats.totalRevenue;
+  const pendingCount = serverStats.pendingCount;
 
   async function updateStatus(bookingId: string, newStatus: string) {
     setUpdating(bookingId);
@@ -73,8 +125,9 @@ export default function AdminPage() {
     }
   }
 
-  const totalRevenue = bookings.filter((b) => ["CONFIRMED","COMPLETED"].includes(b.status)).reduce((s, b) => s + b.amount, 0);
-  const pendingCount = bookings.filter((b) => b.status === "PAID").length;
+  // async function updateStatus handled above
+  // const totalRevenue = ... (replaced by serverStats)
+  // const pendingCount = ... (replaced by serverStats)
 
   function formatCurrency(n: number) {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
@@ -91,21 +144,31 @@ export default function AdminPage() {
 
   return (
     <AuthGuard>
-      <ToastContainer />
-      <div style={{ minHeight: "100vh" }}>
+      <PageShell>
+        <ToastContainer />
+        <div style={{ minHeight: "100vh" }}>
         <div className="nav-bar">
           <button onClick={() => router.back()} className="nav-icon-btn"><ChevronLeft size={20} /></button>
           <span style={{ fontWeight: 700 }}>Panel Admin</span>
-          <span className="chip chip-primary" style={{ fontSize: "0.65rem" }}>Admin</span>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button 
+              className="btn btn-sm" 
+              style={{ background: "#FDF4F7", color: "#ED54B5", border: "1px solid #FBD5ED", fontWeight: 700 }}
+              onClick={() => router.push("/admin/testimonials")}
+            >
+              Cek Testimoni
+            </button>
+            <span className="chip chip-primary" style={{ fontSize: "0.65rem" }}>Admin</span>
+          </div>
         </div>
 
         <div style={{ padding: "16px 20px 48px" }}>
           {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
             {[
-              { icon: Calendar, label: "Total Booking", value: bookings.length, color: "#C0E0EC" },
-              { icon: Clock, label: "Perlu Konfirmasi", value: pendingCount, color: "#FBBF24" },
-              { icon: DollarSign, label: "Revenue", value: `Rp ${(totalRevenue / 1000).toFixed(0)}K`, color: "#10B981" },
+              { icon: Calendar, label: "Total Booking", value: serverStats.totalCount, color: "#C0E0EC" },
+              { icon: Clock, label: "Perlu Konfirmasi", value: serverStats.pendingCount, color: "#FBBF24" },
+              { icon: DollarSign, label: "Revenue", value: `Rp ${(serverStats.totalRevenue / 1000).toFixed(0)}K`, color: "#10B981" },
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -144,7 +207,7 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {loading ? (
+          {initialLoading || isStale ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 140, borderRadius: "var(--radius-lg)" }} />)}
             </div>
@@ -159,23 +222,14 @@ export default function AdminPage() {
                 const flow = STATUS_FLOW[booking.status];
                 return (
                   <div key={booking.id} className="card" style={{ padding: 16 }}>
-                    {/* Header */}
+                    {/* ... item content ... */}
+                    {/* (I'll keep the existing content here) */}
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                       <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0, flex: 1 }}>
                         <Avatar name={booking.user.name} size={36} />
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ 
-                            fontWeight: 700, 
-                            fontSize: "0.875rem",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis"
-                          }}>
-                            {booking.user.name}
-                          </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {booking.user.email}
-                          </div>
+                          <div style={{ fontWeight: 700, fontSize: "0.875rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{booking.user.name}</div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }}>{booking.user.email}</div>
                         </div>
                       </div>
                       <span style={{
@@ -193,7 +247,6 @@ export default function AdminPage() {
                       </span>
                     </div>
 
-                    {/* Details */}
                     <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginBottom: 12, lineHeight: 1.7 }}>
                       <div>👩‍⚕️ {booking.bidan.name}</div>
                       <div>📅 {new Date(booking.availability.date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}</div>
@@ -204,24 +257,14 @@ export default function AdminPage() {
                     {booking.paymentProof && (
                       <div style={{ marginBottom: 12, padding: 8, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 6 }}>Bukti Transfer:</div>
-                        <img 
-                          src={booking.paymentProof} 
-                          alt="Bukti Transfer" 
-                          style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 4, objectFit: "contain" }} 
-                        />
+                        <img src={booking.paymentProof} alt="Bukti Transfer" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 4, objectFit: "contain" }} />
                       </div>
                     )}
 
-                    {/* Amount + Action */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
                       <span style={{ fontWeight: 700, color: "#34D399" }}>{formatCurrency(booking.amount)}</span>
                       {flow && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          id={`admin-update-${booking.id}`}
-                          disabled={updating === booking.id}
-                          onClick={() => updateStatus(booking.id, flow.next)}
-                        >
+                        <button className="btn btn-primary btn-sm" id={`admin-update-${booking.id}`} disabled={updating === booking.id} onClick={() => updateStatus(booking.id, flow.next)}>
                           {updating === booking.id ? "⏳" : flow.label}
                         </button>
                       )}
@@ -229,6 +272,17 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+
+              {hasMore && (
+                <button 
+                  className="btn btn-sm" 
+                  style={{ width: "100%", marginTop: 12, background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
+                  onClick={() => fetchBookings(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "⏳ Memuat..." : "Tampilkan Lebih Banyak"}
+                </button>
+              )}
             </div>
           )}
 
@@ -241,8 +295,9 @@ export default function AdminPage() {
               </span>
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      </PageShell>
     </AuthGuard>
   );
 }

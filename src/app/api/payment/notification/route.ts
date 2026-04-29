@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { invalidateAdminStatsCache } from "@/lib/adminStatsCache";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,10 +38,11 @@ export async function POST(request: NextRequest) {
     if (updateStatus) {
       await prisma.booking.update({
         where: { id: bookingId },
-        data: { 
-          status: updateStatus === "PAID" ? "PAID" : updateStatus 
+        data: {
+          status: updateStatus === "PAID" ? "PAID" : updateStatus
         }
       });
+      invalidateAdminStatsCache();
       console.log(`Payment Updated for Booking ${bookingId}: ${updateStatus}`);
     }
 

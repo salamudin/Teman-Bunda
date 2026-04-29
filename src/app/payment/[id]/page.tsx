@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Copy, Check, Upload, Clock, CheckCircle, CreditCard } from "lucide-react";
 
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, useBookingStore } from "@/lib/store";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
 
@@ -33,6 +33,8 @@ export default function PaymentPage() {
   const [uploading, setUploading] = useState(false);
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
   const [proofName, setProofName] = useState<string | null>(null);
+
+  const { updateBooking } = useBookingStore();
 
   const fetchBooking = useCallback(async () => {
     try {
@@ -84,6 +86,10 @@ export default function PaymentPage() {
         const msg = newStatus === "CONFIRMED" ? "✅ Pembayaran terkonfirmasi!" : "✅ Konfirmasi pembayaran dikirim!";
         addToast(msg, "success");
         setBooking((b) => b ? { ...b, status: newStatus } : b);
+        
+        // Sync with global store
+        updateBooking(id, { status: newStatus });
+
         if (newStatus === "CONFIRMED") router.push("/bookings");
       }
     } catch {

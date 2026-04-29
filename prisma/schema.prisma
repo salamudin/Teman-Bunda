@@ -9,95 +9,97 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
+  id             String         @id @default(cuid())
   name           String
-  email          String    @unique
+  email          String         @unique
   password       String
   phone          String?
   age            Int?
-  status         String    @default("PROGRAM_HAMIL") // PROGRAM_HAMIL | HAMIL | MENYUSUI
-  gestationalAge Int? // usia kehamilan dalam minggu
-  hpht           DateTime?
+  status         String         @default("PROGRAM_HAMIL")
+  gestationalAge Int?
   dueDate        DateTime?
-
   avatar         String?
-  role           String    @default("USER") // USER | ADMIN | BIDAN
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  bookings      Booking[]
-  notifications Notification[]
+  role           String         @default("USER")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  hpht           DateTime?
+  bookings       Booking[]
+  notifications  Notification[]
 }
 
 model Bidan {
-  id              String   @id @default(cuid())
+  id              String         @id @default(cuid())
   name            String
-  email           String   @unique
+  email           String         @unique
   password        String
   phone           String?
   avatar          String?
-  experience      String // e.g., "10 tahun"
+  experience      String
   bio             String?
-  specializations String // JSON array: ["Program Hamil","Kehamilan","Menyusui"]
-  rating          Float    @default(0)
-  totalReviews    Int      @default(0)
-  isActive        Boolean  @default(true)
-  harga           Int      @default(150000)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  availabilities Availability[]
-  bookings       Booking[]
+  specializations String
+  rating          Float          @default(0)
+  totalReviews    Int            @default(0)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  harga           Int            @default(150000)
+  availabilities  Availability[]
+  bookings        Booking[]
 }
 
 model Availability {
   id        String   @id @default(cuid())
   bidanId   String
   date      DateTime
-  startTime String // "09:00"
-  endTime   String // "10:00"
+  startTime String
+  endTime   String
   isBooked  Boolean  @default(false)
   createdAt DateTime @default(now())
+  bidan     Bidan    @relation(fields: [bidanId], references: [id])
+  booking   Booking?
 
-  bidan   Bidan    @relation(fields: [bidanId], references: [id])
-  booking Booking?
+  @@index([bidanId, date])
+  @@index([bidanId, isBooked, date])
 }
 
 model Booking {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   userId         String
   bidanId        String
-  availabilityId String   @unique
+  availabilityId String         @unique
   notes          String?
-  status         String   @default("WAITING_PAYMENT") // WAITING_PAYMENT | PAID | CONFIRMED | COMPLETED | CANCELLED
-  amount         Int      @default(150000) // dalam rupiah
+  status         String         @default("WAITING_PAYMENT")
+  amount         Int            @default(150000)
   paymentProof   String?
-  paymentToken   String?  // Midtrans Snap Token
-  grossAmount    Int?     // For Midtrans gross_amount mapping
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  grossAmount    Int?
+  paymentToken   String?
+  availability   Availability   @relation(fields: [availabilityId], references: [id])
+  bidan          Bidan          @relation(fields: [bidanId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+  messages       Message[]
+  notifications  Notification[]
 
-
-  user          User           @relation(fields: [userId], references: [id])
-  bidan         Bidan          @relation(fields: [bidanId], references: [id])
-  availability  Availability   @relation(fields: [availabilityId], references: [id])
-  messages      Message[]
-  notifications Notification[]
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([bidanId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
-// Message: senderId + senderType to support both User and Bidan senders, no Prisma relation (avoids optional-optional constraint)
 model Message {
   id         String   @id @default(cuid())
   bookingId  String
   senderId   String
-  senderType String // USER | BIDAN
-  senderName String // denormalized for display
-  content    String? // optional if caption is not provided
-  imageUrl   String? // for image messages
-  type       String   @default("TEXT") // TEXT | IMAGE
+  senderType String
+  senderName String
+  content    String?
   createdAt  DateTime @default(now())
+  imageUrl   String?
+  type       String   @default("TEXT")
+  booking    Booking  @relation(fields: [bookingId], references: [id])
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+  @@index([bookingId, createdAt])
 }
 
 model Notification {
@@ -108,7 +110,22 @@ model Notification {
   body      String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
-  user    User     @relation(fields: [userId], references: [id])
-  booking Booking? @relation(fields: [bookingId], references: [id])
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([bookingId])
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  userId      String?
+  name        String
+  text        String
+  category    String
+  isAnonymous Boolean  @default(false)
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rating      Int      @default(5)
 }

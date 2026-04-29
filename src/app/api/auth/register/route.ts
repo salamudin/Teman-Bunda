@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signToken } from "@/lib/auth";
+import { withAuthCookie } from "@/lib/serverAuth";
+
+export const preferredRegion = "icn1";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const token = signToken({ userId: user.id, role: user.role });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       user: {
         id: user.id,
@@ -50,8 +53,8 @@ export async function POST(request: NextRequest) {
         hpht: null,
         dueDate: null,
       },
-
     });
+    return withAuthCookie(response, token);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

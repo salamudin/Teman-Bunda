@@ -5,9 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Bell, ChevronRight, Calendar, Heart, Star,
-  Baby, MessageCircle, ShieldCheck, Sparkles,
+  Baby, MessageCircle, ShieldCheck, Sparkles, Quote
 } from "lucide-react";
-import { useAuthStore, useUIStore, useBidanStore } from "@/lib/store";
+import { useAuthStore, useUIStore, useBidanStore, useBookingStore } from "@/lib/store";
+import { prefetchBookings } from "@/lib/bookingsPrefetch";
 import BottomBar from "@/components/BottomBar";
 import AuthGuard from "@/components/AuthGuard";
 import ToastContainer from "@/components/ToastContainer";
@@ -32,14 +33,31 @@ import { getWeekInfo } from "@/lib/janinData";
 
 export default function HomePage() {
   const { user, token } = useAuthStore();
-  const { bidans, setBidans, lastFetched } = useBidanStore();
+  const { bidans, setBidans, lastFetched: bidansLastFetched, hasHydrated: bidansHydrated } = useBidanStore();
+  const { bookings, setBookings, lastFetched: bookingsLastFetched, hasHydrated: bookingsHydrated } = useBookingStore();
   const addToast = useUIStore((s) => s.addToast);
   const router = useRouter();
   const [primaryBidan, setPrimaryBidan] = useState<Bidan | null>(bidans[0] || null);
   const [notifCount, setNotifCount] = useState(0);
-  const [upcomingBooking, setUpcomingBooking] = useState<{ bidanName: string; date: string; time: string } | null>(null);
-  const [loading, setLoading] = useState(bidans.length === 0);
   const [fetalAge, setFetalAge] = useState<number | null>(null);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
+
+  // Loading state for background syncing
+  const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Show skeleton ONLY if not hydrated OR hydrated but truly empty
+  const loading = !bidansHydrated || (bidans.length === 0 && !bidansLastFetched);
+
+  // Derive upcoming booking from store
+  const upcoming = bookings.find(
+    (b: any) => b.status === "CONFIRMED" || b.status === "PAID"
+  );
+  
+  const upcomingBooking = upcoming ? {
+    bidanName: upcoming.bidan.name,
+    date: new Date(upcoming.availability.date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" }),
+    time: upcoming.availability.startTime,
+  } : null;
 
   useEffect(() => {
     if (user?.hpht) {
@@ -52,6 +70,12 @@ export default function HomePage() {
       setFetalAge(user.gestationalAge);
     }
   }, [user]);
+
+  // Users typically land on /home before tapping Jadwal Saya. Kick off the
+  // bookings fetch now so the list is already cached by the time they navigate.
+  useEffect(() => {
+    prefetchBookings("ALL");
+  }, []);
 
   const fetalInfo = fetalAge !== null ? getWeekInfo(fetalAge) : null;
 
@@ -71,8 +95,8 @@ export default function HomePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
-      const isFresh = lastFetched && Date.now() - lastFetched < 300000;
+      setIsSyncing(true);
+      const isFresh = bidansLastFetched && Date.now() - bidansLastFetched < 300000;
 
       // 1. Fetch bidans independently
       if (!isFresh || bidans.length === 0) {
@@ -114,30 +138,32 @@ export default function HomePage() {
         fetch("/api/bookings", { headers: { Authorization: `Bearer ${token}` } })
           .then(res => res.json())
           .then(data => {
-            const upcoming = (data.bookings || []).find(
-              (b: { status: string }) => b.status === "CONFIRMED" || b.status === "PAID"
-            );
-            if (upcoming) {
-              setUpcomingBooking({
-                bidanName: upcoming.bidan.name,
-                date: new Date(upcoming.availability.date).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" }),
-                time: upcoming.availability.startTime,
-              });
-            }
+            if (data.bookings) setBookings(data.bookings);
           }).catch(() => {});
       }
     } catch {
       if (token) addToast("Gagal menyinkronkan data", "error");
     } finally {
-      setLoading(false);
+      setIsSyncing(false);
     }
 
 
-  }, [token, addToast, bidans, lastFetched, setBidans, primaryBidan]);
+  }, [token, addToast, bidans, bidansLastFetched, setBidans, primaryBidan, setBookings]);
+
+  useEffect(() => {
+    fetch("/api/testimonials?limit=3", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.testimonials) setTestimonials(data.testimonials);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => { 
-    fetchData(); 
-  }, [token]); // Only re-fetch if token changes or component mounts
+    if (bidansHydrated && bookingsHydrated) {
+      fetchData(); 
+    }
+  }, [token, bidansHydrated, bookingsHydrated]); // Only re-fetch if token changes or component hydrates
 
 
   return (
@@ -434,6 +460,55 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* Testimonials */}
+          {testimonials.length > 0 && (
+            <section style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h2 className="section-title" style={{ marginBottom: 0 }}>Testimoni Pengguna</h2>
+              </div>
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", margin: "0 -20px", padding: "0 20px" }}>
+                              {testimonials.map((testi: any) => (
+                  <div key={testi.id} style={{
+                    minWidth: 260, maxWidth: 280,
+                    background: "rgba(255, 255, 255, 0.8)", backdropFilter: "blur(4px)",
+                    borderRadius: "var(--radius-xl)", padding: 16,
+                    border: "1px solid rgba(237, 84, 181, 0.15)",
+                    boxShadow: "0 4px 12px rgba(237, 84, 181, 0.05)",
+                    display: "flex", flexDirection: "column", gap: 12
+                  }}>
+                    <Quote size={20} color="#ED54B5" style={{ opacity: 0.3 }} />
+                    {/* Star rating */}
+                    {testi.rating > 0 && (
+                      <div style={{ display: "flex", gap: 2 }}>
+                        {[1,2,3,4,5].map(s => (
+                          <Star
+                            key={s}
+                            size={14}
+                            color="#FBBF24"
+                            fill={s <= testi.rating ? "#FBBF24" : "none"}
+                            strokeWidth={1.5}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <p style={{ fontSize: "0.85rem", color: "#3D444F", fontStyle: "italic", flex: 1, lineHeight: 1.5 }}>
+                      "{testi.text}"
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: "1px solid rgba(0,0,0,0.05)", paddingTop: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--gradient-primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: "0.8rem" }}>
+                        {testi.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#000" }}>{testi.name}</div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{testi.category}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* SEO Content Section - Branded Style */}
           <section style={{ marginBottom: 48, marginTop: 12 }}>
             <div style={{
@@ -473,7 +548,7 @@ export default function HomePage() {
                   },
                   { 
                     title: "Bidan Profesional", 
-                    desc: "Hanya bekerja sama dengan bidan ahli pengalaman >5 tahun.",
+                    desc: "Konsultasimu akan didampingi langsung oleh bidan berpengalaman.",
                     icon: ShieldCheck,
                     color: "#06B6D4",
                     bg: "rgba(6, 182, 212, 0.1)"

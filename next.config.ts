@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async headers() {
     return [
       // Digital Asset Links — required for TWA verification (no address bar)

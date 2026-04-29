@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, clearUserScopedCaches } from "@/lib/store";
 import ToastContainer from "@/components/ToastContainer";
 import { GoogleLogin } from "@react-oauth/google";
 
@@ -38,6 +38,9 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || "Login gagal");
       } else {
+        // Wipe any per-user caches left behind by a previous session on this
+        // device before seating the new user — prevents booking data leaks.
+        clearUserScopedCaches();
         login(data.user, data.token);
         addToast(`Selamat datang, ${data.user.name}! 👋`, "success");
         router.push("/home");
@@ -60,14 +63,20 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Login Google gagal");
+        // Show detail if available (e.g. configuration errors)
+        const errorMsg = data.detail ? `${data.error}: ${data.detail}` : (data.error || "Login Google gagal");
+        setError(errorMsg);
       } else {
+        // Wipe any per-user caches left behind by a previous session on this
+        // device before seating the new user — prevents booking data leaks.
+        clearUserScopedCaches();
         login(data.user, data.token);
         addToast(`Selamat datang, ${data.user.name}! 👋`, "success");
         router.push("/home");
       }
-    } catch {
-      setError("Terjadi kesalahan saat login Google.");
+    } catch (err) {
+      console.error("Google login fetch error:", err);
+      setError("Terjadi kesalahan koneksi saat login Google.");
     } finally {
       setLoading(false);
     }

@@ -39,6 +39,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.85,
     },
 
+    // === SEO Landing Pages ===
+    ...[
+      "tanya-bidan",
+      "konsultasi-bidan",
+      "konsultasi-kehamilan",
+      "konsultasi-nifas",
+      "konsultasi-menyusui",
+      "kesehatan-reproduksi",
+    ].map((slug) => ({
+      url: `${baseUrl}/${slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
+
     // === MEDIUM PRIORITY - User flow ===
     {
       url: `${baseUrl}/register`,

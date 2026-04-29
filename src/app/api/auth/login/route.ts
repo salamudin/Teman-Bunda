@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, signToken } from "@/lib/auth";
+import { withAuthCookie } from "@/lib/serverAuth";
+
+export const preferredRegion = "icn1";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     const role = isBidan ? "BIDAN" : account.role;
     const token = signToken({ userId: account.id, role });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
       user: {
         id: account.id,
@@ -62,6 +65,9 @@ export async function POST(request: NextRequest) {
         harga: account.harga || undefined,
       },
     });
+    // Set the cookie in addition to returning the token so Server Components
+    // can SSR authenticated pages (e.g. /bookings) without a client round trip.
+    return withAuthCookie(response, token);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -233,21 +233,26 @@ export default function BidanDetailPage() {
                   firstThreeDays.map(([date, slots]) => (
                     <div key={date} style={{ marginBottom: 12 }}>
                       <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8 }}>{date}</p>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {slots.slice(0, 4).map((s) => (
+                      <div style={{ 
+                        display: "flex", 
+                        gap: 8, 
+                        overflowX: "auto", 
+                        paddingBottom: 8,
+                        msOverflowStyle: "none",
+                        scrollbarWidth: "none",
+                        WebkitOverflowScrolling: "touch"
+                      }} className="no-scrollbar">
+                        {slots.map((s) => (
                           <span key={s.id} style={{
                             padding: "6px 12px", background: "var(--bg-elevated)",
                             border: "1px solid var(--border)", borderRadius: "var(--radius-md)",
-                            fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)"
+                            fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0
                           }}>
                             {s.startTime}
                           </span>
                         ))}
-                        {slots.length > 4 && (
-                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", padding: "6px 0" }}>
-                            +{slots.length - 4} lainnya
-                          </span>
-                        )}
                       </div>
                     </div>
                   ))

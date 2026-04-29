@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
-import { useAuthStore, useUIStore } from "@/lib/store";
+import { useAuthStore, useUIStore, clearUserScopedCaches } from "@/lib/store";
 import ToastContainer from "@/components/ToastContainer";
 
 import { GoogleLogin } from "@react-oauth/google";
@@ -55,6 +55,7 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Registrasi gagal");
       } else {
+        clearUserScopedCaches();
         login(data.user, data.token);
         addToast("Akun berhasil dibuat! Selamat bergabung 🎉", "success");
         router.push("/home");

@@ -21,6 +21,10 @@ export default function BottomSheet({ isOpen, onClose, title, children }: Bottom
       document.body.style.overflow = "unset";
       return () => clearTimeout(timer);
     }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, [isOpen]);
 
   if (!shouldRender && !isOpen) return null;

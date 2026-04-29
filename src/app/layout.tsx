@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import GoogleProviderWrapper from "@/components/GoogleProviderWrapper";
 import ClientShell from "@/components/ClientShell";
+import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
   title: {
@@ -140,6 +141,7 @@ export default function RootLayout({
       </head>
 
       <body>
+        <Analytics />
         <GoogleProviderWrapper>
           <ClientShell>
             {children}
